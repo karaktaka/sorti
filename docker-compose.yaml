@@ -1,0 +1,14 @@
+services:
+  sorti:
+    build: .
+    volumes:
+      - ./sorti/config.yaml:/app/config.yaml:ro
+    environment:
+      - EMAIL=${EMAIL:-}
+      - PASSWORD=${PASSWORD:-}
+      - IMAP_SERVER=${IMAP_SERVER:-}
+      - IMAP_PORT=${IMAP_PORT:-}
+      - KEYWORDS=${KEYWORDS:-}
+      - TAG_NAME=${TAG_NAME:-}
+      - EXCLUDED_FOLDERS=${EXCLUDED_FOLDERS:-}
+    restart: unless-stopped

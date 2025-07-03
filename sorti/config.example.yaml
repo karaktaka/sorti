@@ -1,0 +1,25 @@
+# Email configuration
+email: your_email@provider.tld
+password: your_password
+server: imap.provider.tld
+port: 993
+
+# Filter settings
+keywords:
+  - rechnung
+  - invoice
+  - document
+  - dokument
+  - vertrag
+  - contract
+
+tag_name: paperless
+
+# Folder settings
+excluded_folders:
+  - Spam
+  - Trash
+  - Archive
+  - Deleted Items
+  - Archives
+  - Junk
