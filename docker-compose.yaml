@@ -1,6 +1,6 @@
 services:
   sorti:
-    build: .
+    image: ghcr.io/karaktaka/sorti:latest
     volumes:
       - ./sorti/config.yaml:/app/config.yaml:ro
     environment:
@@ -11,4 +11,6 @@ services:
       - KEYWORDS=${KEYWORDS:-}
       - TAG_NAME=${TAG_NAME:-}
       - EXCLUDED_FOLDERS=${EXCLUDED_FOLDERS:-}
+      - TIME_LIMIT=${TIME_LIMIT:-all}
+      - INTERVAL=${INTERVAL:-}
     restart: unless-stopped

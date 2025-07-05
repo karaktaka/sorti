@@ -9,6 +9,9 @@ A Python tool for automatically processing emails via IMAP. It searches emails f
 - Detection of important documents using keywords
 - Detection of emails with attachments
 - Exclusion of specific folders (e.g., Spam, Trash)
+- Time-based email filtering (process emails from last X minutes/hours/days)
+- Automatic re-processing at configurable intervals
+- Skip already tagged emails
 - Docker deployment support
 
 ## Installation
@@ -59,6 +62,10 @@ keywords:
   - contract
 tag_name: paperless
 
+# Time settings
+time_limit: all  # Options: "5m", "2h", "1d", "1w", "1y" or "all"
+interval: 30m    # Optional: "30m", "1h", "1d" etc. for periodic execution
+
 # Folder settings
 excluded_folders:
   - Spam
@@ -78,6 +85,8 @@ excluded_folders:
 - `KEYWORDS`: Comma-separated list of keywords
 - `TAG_NAME`: Tag name for marked emails
 - `EXCLUDED_FOLDERS`: Comma-separated list of folders to exclude
+- `TIME_LIMIT`: Time limit for email processing (e.g., "5m", "2h", "1d", "1w", "1y" or "all")
+- `INTERVAL`: Interval for automatic re-processing (e.g., "30m", "1h", "1d")
 
 ### Command-line Arguments
 
@@ -94,34 +103,48 @@ Available options:
 - `--keywords`: Comma-separated list of keywords
 - `--tag`: Tag name
 - `--exclude`: Comma-separated list of folders to exclude
+- `--time-limit`: Time limit for email processing
+- `--interval`: Interval for automatic re-processing
 
 ## Usage
 
 ### With Python
 
 ```bash
-# With default configuration file
+# Process all untagged emails
 python main.py
 
-# With specific configuration file
-python main.py -c my_config.yaml
+# Process emails from last 2 hours
+python main.py --time-limit 2h
 
-# With command-line arguments
-python main.py --email user@mailbox.org --password secret --keywords "invoice,contract"
+# Process emails from last week and repeat every hour
+python main.py --time-limit 1w --interval 1h
 ```
 
 ### With Docker
 
 ```bash
-# With configuration file
-docker run -v $(pwd)/config.yaml:/app/config.yaml ghcr.io/yourusername/imap-processor
+# Using environment variables
+docker compose up -d
 
-# With environment variables
-docker run -e EMAIL=user@mailbox.org -e PASSWORD=secret ghcr.io/yourusername/imap-processor
-
-# With Docker Compose
-docker compose up
+# Or directly with docker run
+docker run -v ./config.yaml:/app/config.yaml:ro \
+  -e EMAIL=your@email.com \
+  -e PASSWORD=yourpassword \
+  -e TIME_LIMIT=2h \
+  -e INTERVAL=30m \
+  ghcr.io/karaktaka/sorti:latest
 ```
+
+## Time Format
+
+The time values for `--time-limit` and `--interval` support the following formats:
+- `Xm`: X minutes (e.g., "5m", "30m")
+- `Xh`: X hours (e.g., "1h", "12h")
+- `Xd`: X days (e.g., "1d", "7d")
+- `Xw`: X weeks (e.g., "1w", "2w")
+- `Xy`: X years (e.g., "1y")
+- `all`: Process all emails (only for time-limit)
 
 ## Development
 
