@@ -83,7 +83,7 @@ jobs:
     needs:
       - test
       - changed_files
-    if: needs.changed_files.outputs.changed_python == 'true' or needs.changed_files.outputs.changed_docker == 'true'
+    if: needs.changed_files.outputs.changed_python == 'true' || needs.changed_files.outputs.changed_docker == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
