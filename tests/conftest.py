@@ -34,5 +34,7 @@ def config() -> Dict:
         'port': 993,
         'keywords': ['invoice', 'rechnung'],
         'tag_name': 'paperless',
-        'excluded_folders': ['Spam', 'Trash']
+        'excluded_folders': ['Spam', 'Trash'],
+        'time_limit': 'all',
+        'interval': None
     }
