@@ -15,6 +15,10 @@ keywords:
 
 tag_name: paperless
 
+# Time settings
+time_limit: all  # Options: "5m", "2h", "1d", "1w", "1y" or "all"
+interval: 30m    # Optional: "30m", "1h", "1d" etc. for periodic execution
+
 # Folder settings
 excluded_folders:
   - Spam
