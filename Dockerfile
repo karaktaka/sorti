@@ -1,22 +1,18 @@
-FROM python:3.13-alpine AS builder
+FROM ghcr.io/astral-sh/uv:latest AS uv
+FROM alpine AS builder
+ENV PATH="/app/.venv/bin:$PATH"
 
+ARG UID=10001
+RUN adduser -D -H -h /app -u "${UID}" appuser
+
+USER appuser
 WORKDIR /app
 
 # Install dependencies
-COPY pyproject.toml uv.lock ./
-COPY --from=uv /uv /uv
+COPY --chown=${UID} pyproject.toml uv.lock ./
+COPY --from=uv /uv /usr/local/bin/uv
 
-RUN /uv sync --no-dev
-
-
-# Final image
-FROM python:3.13-alpine
-
-WORKDIR /app
-
-# Copy virtual environment
-COPY --from=builder /app/.venv /app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
+RUN uv sync --no-dev
 
 # Copy application
 COPY sorti/ .
