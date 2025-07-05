@@ -12,7 +12,37 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  changed_files:
+    runs-on: ubuntu-latest
+    outputs:
+      changed_python: ${{ steps.changed.outputs.any_changed }}
+      changed_docker: ${{ steps.changed_docker.outputs.any_changed }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get all tests and src files that have changed
+      id: changed_python
+      uses: tj-actions/changed-files@v46
+      with:
+        files_yaml: |
+          test:
+            - tests/**
+            - '!tests/**.md'
+          src:
+            - sorti/**
+
+    - name: Get all tests and src files that have changed
+      id: changed_docker
+      uses: tj-actions/changed-files@v46
+      with:
+        files_yaml: |
+          docker:
+            - Dockerfile
+
   test:
+    needs: changed_files
+    if: needs.changed_files.outputs.changed_python == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -50,7 +80,10 @@ jobs:
         uv run pytest -vv
 
   build:
-    needs: test
+    needs:
+      - test
+      - changed_files
+    if: needs.changed_files.outputs.changed_python == 'true' or needs.changed_files.outputs.changed_docker == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
