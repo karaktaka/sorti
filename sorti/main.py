@@ -3,9 +3,11 @@ import email
 import imaplib
 import os
 import sys
+import time
+from datetime import datetime, timedelta
 from email.header import decode_header
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import yaml
 
@@ -32,6 +34,10 @@ def parse_arguments() -> argparse.Namespace:
                         help='Tag name for important documents (overrides config file)')
     parser.add_argument('--exclude',
                         help='Comma-separated list of folders to exclude (overrides config file)')
+    parser.add_argument('--time-limit',
+                        help='Time limit for email processing (e.g., "5m", "2h", "1d", "1w", "1y" or "all")')
+    parser.add_argument('--interval',
+                        help='Interval for script execution (e.g., "30m", "1h", "1d")')
 
     return parser.parse_args()
 
@@ -45,7 +51,9 @@ def load_config(args: argparse.Namespace) -> Dict:
         'port': 993,
         'keywords': ['rechnung', 'invoice', 'document', 'dokument', 'vertrag', 'contract'],
         'tag_name': 'paperless',
-        'excluded_folders': ['Spam', 'Trash', 'Archive', 'Papierkorb', 'Archiv', 'Junk']
+        'excluded_folders': ['Spam', 'Trash', 'Archive', 'Papierkorb', 'Archiv', 'Junk'],
+        'time_limit': 'all',
+        'interval': None
     }
 
     # Load from YAML config file if it exists
@@ -54,20 +62,9 @@ def load_config(args: argparse.Namespace) -> Dict:
             with open(args.config, 'r') as f:
                 yaml_config = yaml.safe_load(f)
                 if yaml_config:
-                    if 'email' in yaml_config:
-                        config['email'] = yaml_config['email']
-                    if 'password' in yaml_config:
-                        config['password'] = yaml_config['password']
-                    if 'server' in yaml_config:
-                        config['server'] = yaml_config['server']
-                    if 'port' in yaml_config:
-                        config['port'] = yaml_config['port']
-                    if 'keywords' in yaml_config:
-                        config['keywords'] = yaml_config['keywords']
-                    if 'tag_name' in yaml_config:
-                        config['tag_name'] = yaml_config['tag_name']
-                    if 'excluded_folders' in yaml_config:
-                        config['excluded_folders'] = yaml_config['excluded_folders']
+                    for key in config.keys():
+                        if key in yaml_config:
+                            config[key] = yaml_config[key]
         except Exception as e:
             print(f"Error reading configuration file: {e}")
 
@@ -80,6 +77,8 @@ def load_config(args: argparse.Namespace) -> Dict:
     if os.getenv('TAG_NAME'): config['tag_name'] = os.getenv('TAG_NAME')
     if os.getenv('EXCLUDED_FOLDERS'):
         config['excluded_folders'] = [f.strip() for f in os.getenv('EXCLUDED_FOLDERS').split(',') if f.strip()]
+    if os.getenv('TIME_LIMIT'): config['time_limit'] = os.getenv('TIME_LIMIT')
+    if os.getenv('INTERVAL'): config['interval'] = os.getenv('INTERVAL')
 
     # Override with command line arguments (highest priority)
     if args.email: config['email'] = args.email
@@ -90,6 +89,8 @@ def load_config(args: argparse.Namespace) -> Dict:
     if args.tag: config['tag_name'] = args.tag
     if args.exclude:
         config['excluded_folders'] = [f.strip() for f in args.exclude.split(',') if f.strip()]
+    if args.time_limit: config['time_limit'] = args.time_limit
+    if args.interval: config['interval'] = args.interval
 
     # Check required values
     if not config['email'] or not config['password']:
@@ -121,10 +122,51 @@ def get_all_folders(imap):
     return folders
 
 
+def parse_time_string(time_str: str) -> Union[timedelta, None]:
+    """Convert time string to timedelta object"""
+    if time_str == 'all':
+        return None
+
+    value = int(time_str[:-1])
+    unit = time_str[-1].lower()
+
+    if unit == 'm':
+        return timedelta(minutes=value)
+    elif unit == 'h':
+        return timedelta(hours=value)
+    elif unit == 'd':
+        return timedelta(days=value)
+    elif unit == 'w':
+        return timedelta(weeks=value)
+    elif unit == 'y':
+        return timedelta(days=value*365)
+    else:
+        raise ValueError(f"Invalid time unit: {unit}. Use m (minutes), h (hours), d (days), w (weeks), or y (years)")
+
+
+def get_search_criteria(config: Dict) -> str:
+    """Generate IMAP search criteria based on configuration"""
+    criteria = []
+
+    # Add time limit if specified
+    if config['time_limit'] != 'all':
+        time_delta = parse_time_string(config['time_limit'])
+        if time_delta:
+            date_str = (datetime.now() - time_delta).strftime("%d-%b-%Y")
+            criteria.append(f'SINCE {date_str}')
+
+    # Exclude messages that already have the tag
+    if config['tag_name']:
+        criteria.append(f'NOT KEYWORD {config["tag_name"]}')
+
+    return '(' + ' '.join(criteria) + ')' if criteria else 'ALL'
+
+
 def process_emails(imap, folder: str, config: Dict):
     """Process emails in a folder"""
     imap.select(folder)
-    _, messages = imap.search(None, 'ALL')
+    search_criteria = get_search_criteria(config)
+    _, messages = imap.search(None, search_criteria)
 
     for message_num in messages[0].split():
         _, msg_data = imap.fetch(message_num, '(RFC822)')
@@ -175,14 +217,9 @@ def should_process_folder(folder_name: str, excluded_folders: List[str]) -> bool
     return not any(excluded.lower() in folder_name.lower() for excluded in excluded_folders)
 
 
-def main():
+def process_mailbox(config: Dict):
+    """Process all folders in the mailbox"""
     try:
-        # Parse command line arguments
-        args = parse_arguments()
-
-        # Load configuration
-        config = load_config(args)
-
         # Connect and process emails
         imap = connect_to_mailbox(config)
         folders = get_all_folders(imap)
@@ -198,6 +235,33 @@ def main():
                 print(f"Error processing folder {folder}: {str(e)}")
 
         imap.logout()
+    except Exception as e:
+        print(f"Error processing mailbox: {str(e)}")
+
+
+def main():
+    try:
+        # Parse command line arguments
+        args = parse_arguments()
+
+        # Load configuration
+        config = load_config(args)
+
+        # Main processing loop
+        while True:
+            print(f"\nStarting email processing at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            process_mailbox(config)
+
+            if not config['interval']:
+                break
+
+            interval = parse_time_string(config['interval'])
+            print(f"Waiting {config['interval']} until next run...")
+            time.sleep(interval.total_seconds())
+
+    except KeyboardInterrupt:
+        print("\nProcess terminated by user")
+        sys.exit(0)
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         sys.exit(1)
