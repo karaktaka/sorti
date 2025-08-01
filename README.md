@@ -1,6 +1,7 @@
 # IMAP Email Processor
 
-A Python tool for automatically processing emails via IMAP. It searches emails for important documents and invoices and marks them with a configurable tag.
+A Python tool for automatically processing emails via IMAP. It searches emails for important documents and invoices and
+marks them with a configurable tag.
 
 ## Features
 
@@ -37,6 +38,7 @@ docker compose build
 ## Configuration
 
 Configuration can be done in three ways (in ascending priority):
+
 1. YAML configuration file
 2. Environment variables
 3. Command-line arguments
@@ -95,6 +97,7 @@ python main.py --help
 ```
 
 Available options:
+
 - `-c, --config`: Path to configuration file (default: config.yaml)
 - `--email`: Email address
 - `--password`: Password
@@ -139,6 +142,7 @@ docker run -v ./config.yaml:/app/config.yaml:ro \
 ## Time Format
 
 The time values for `--time-limit` and `--interval` support the following formats:
+
 - `Xm`: X minutes (e.g., "5m", "30m")
 - `Xh`: X hours (e.g., "1h", "12h")
 - `Xd`: X days (e.g., "1d", "7d")

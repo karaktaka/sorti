@@ -12,9 +12,9 @@ WORKDIR /app
 COPY --chown=${UID} pyproject.toml uv.lock ./
 COPY --from=uv /uv /usr/local/bin/uv
 
-RUN uv sync --no-dev
+RUN uv sync --no-dev --frozen
 
 # Copy application
 COPY sorti/ .
 
-CMD ["python", "main.py"]
+CMD ["uv", "run", "main.py"]

@@ -15,30 +15,30 @@ jobs:
   changed_files:
     runs-on: ubuntu-latest
     outputs:
-      changed_python: ${{ steps.changed.outputs.any_changed }}
+      changed_python: ${{ steps.changed_python.outputs.any_changed }}
       changed_docker: ${{ steps.changed_docker.outputs.any_changed }}
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Get all tests and src files that have changed
-      id: changed_python
-      uses: tj-actions/changed-files@v46
-      with:
-        files_yaml: |
-          test:
-            - tests/**
-            - '!tests/**.md'
-          src:
-            - sorti/**
+      - name: Get all tests and src files that have changed
+        id: changed_python
+        uses: tj-actions/changed-files@v46
+        with:
+          files_yaml: |
+            test:
+              - tests/**
+              - '!tests/**.md'
+            src:
+              - sorti/**
 
-    - name: Get all tests and src files that have changed
-      id: changed_docker
-      uses: tj-actions/changed-files@v46
-      with:
-        files_yaml: |
-          docker:
-            - Dockerfile
+      - name: Get all tests and src files that have changed
+        id: changed_docker
+        uses: tj-actions/changed-files@v46
+        with:
+          files_yaml: |
+            docker:
+              - Dockerfile
 
   test:
     needs: changed_files
@@ -46,38 +46,38 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: [ "3.12", "3.13" ]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Install UV
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - name: Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          .venv
-          ~/.cache/pip
-          ~/.cache/uv
-        key: ${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('uv.lock') }}
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            .venv
+            ~/.cache/pip
+            ~/.cache/uv
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}-${{ hashFiles('uv.lock') }}
 
-    - name: Install dependencies
-      run: |
-        uv sync --group test
+      - name: Install dependencies
+        run: |
+          uv sync --group test
 
-    - name: Run tests
-      run: |
-        source .venv/bin/activate
-        uv run pytest -vv
+      - name: Run tests
+        run: |
+          source .venv/bin/activate
+          uv run pytest -vv
 
   build:
     needs:
@@ -116,8 +116,6 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          build-contexts: |
-            uv=docker-image://ghcr.io/astral-sh/uv:latest
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
