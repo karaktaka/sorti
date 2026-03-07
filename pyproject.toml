@@ -11,6 +11,12 @@ requires-python = ">=3.13"
 addopts = "-ra -q"
 testpaths = ["tests"]
 
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+line-ending = "lf"
+
 [dependency-groups]
 test = [
     "pytest>=8.4.1",
