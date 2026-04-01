@@ -1,4 +1,5 @@
-# IMAP Email Processor
+> **Note:** This project has moved to [Codeberg](https://codeberg.org/karaktaka/sorti).
+> This GitHub repository is no longer actively maintained.# IMAP Email Processor
 
 A Python tool for automatically processing emails via IMAP. It searches emails for important documents and invoices and
 marks them with a configurable tag.
